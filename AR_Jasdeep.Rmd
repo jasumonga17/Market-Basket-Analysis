@@ -1,0 +1,285 @@
+```{r}
+# Activating the necessary libraries.
+library(readr)
+library(dplyr)
+
+# Reading the bank data set.
+data<-read.csv('bank-data(1).csv')
+head(data)
+```
+```{r}
+# Getting Info. about our data set using glimpse() or we can also use str()
+# This shows us that we have 600 observations and 12 columns.
+glimpse(data)
+```
+```{r}
+# Checking the descriptive statistics of our dataset
+# For each our continuous columns we see the Min./Max./Quartile and Mean value.
+summary(data)
+```
+
+```{r}
+# Data Pre-processing
+
+# Dropping 'id' column as it won't be required ahead.
+data<-select(data,-id)
+```
+
+```{r}
+# Finding columns which have null values in them.
+names(which(colSums(is.na(data))>0))
+# There are no null values present in the data.
+```
+
+# Converting Variables into discrete category.
+# Age, Income and Children
+```{r}
+# Age
+data$Age<-case_when(
+          data$age>=60~'Sixties',
+          data$age>=50~'Fifties',
+          data$age>=40 ~'Forties',
+          data$age>=30~'Thirties',
+          data$age>=20~'Twenties',
+          data$age>=10~'Teens',
+          )
+```
+
+```{r}
+# Income
+data$Income_Category<-case_when(data$income>=63000 ~'Wealthy',
+                                data$income>=36000 ~'Rich',
+                                data$income>=24000 ~'Average Income',
+                                data$income>=5000 ~ 'Minimum'
+                                )
+```
+
+```{r}
+# Children
+data$children<-case_when(data$children>=3~'Three Kids',
+                         data$children>=2~'Two Kids',
+                         data$children>=1~'One Kid',
+                         data$children>=0~'No Kids'
+                         )
+```
+
+```{r}
+# Creating factor variables
+data_new<-data.frame(Age=as.factor(data$Age),
+                     sex=as.factor(data$sex),
+                     region=as.factor(data$region),
+                     Income_Category=as.factor(data$Income_Category),
+                     married=as.factor(data$married),
+                     children=as.factor(data$children),
+                     car=as.factor(data$car),
+                     save_act=as.factor(data$save_act),
+                     current_act=as.factor(data$current_act),
+                     mortgage=as.factor(data$mortgage),
+                     pep=as.factor(data$pep)
+                     )
+```
+
+
+```{r}
+# Activating the necessary libraries.
+library(dplyr)
+
+# Distribution of customer's that purchased('YES') and didn't purchase('NO') PEP.
+pep_response<-data_new%>%count(pep)
+pep_response
+
+# Percentage
+prop.table(pep_response$n)
+# 54.3% customer's have not purchased the new product.
+# 45.6% customer's have purchased the new product.
+```
+
+```{r}
+# Mortgage Percentage
+mortgage_perc<-data_new%>%count(mortgage)
+mortgage_perc
+
+# Percentage
+prop.table(mortgage_perc$n)
+# 65.16% customer's have no mortgage.
+# 34.83% customer's have mortgage.
+```
+
+```{r}
+# Age Category
+age_category<-data_new%>%count(Age,sort=TRUE)
+age_category
+
+# Age Percentage
+prop.table(age_category$n)*100
+
+# 23.5% of the customer's at the bank are in thier 40's.
+# 20.% in their twenties
+# 19.5% in their thirties
+# 16.6% in their fifties
+# 16.3% in their sixties
+# 3.55% in their teens
+```
+
+
+```{r}
+# Town 
+town_perc<-data_new%>%count(region,sort = TRUE)
+town_perc
+
+# Town percentage
+prop.table(town_perc$n)*100
+
+# 44.83% customers stay in Inner City.
+# 28.83 % customers stay in Town.
+# 16.0% customers stay in Rural.
+# 10.33% stay in Suburban region.
+```
+
+```{r}
+# Married
+married_perc<-data_new%>%count(married)
+married_perc
+
+# Married percentage
+prop.table(married_perc$n)*100
+
+# 66% customers are married.
+# 34% customers are unmarried.
+```
+
+```{r}
+# Car
+car_perc<-data_new%>%count(car)
+car_perc
+
+# Car percentage
+prop.table(car_perc$n)*100
+
+# 50.66% have cars.
+# 49.9% have no cars.
+```
+
+```{r}
+# Current Account
+current_ac_perc<-data_new%>%count(current_act)
+current_ac_perc
+
+# Current Account Percentage
+prop.table(current_ac_perc$n)*100
+
+
+# 75.83% customers have current account.
+# 24.16% customers have no current account.
+```
+
+```{r}
+# Savings Account
+saving_ac_perc<-data_new%>%count(save_act)
+saving_ac_perc
+
+# Savings Account Percentage
+prop.table(saving_ac_perc$n)*100
+
+
+# 69% have savings account.
+# 31% have no savings account.
+```
+
+```{r}
+# Activating the necessary libraries for Association Rule Mining.
+# Arules,ArulesViz and dplyr
+library(arules)
+library(arulesViz)
+library(dplyr)
+```
+
+```{r}
+# Creating a sparse transaction matrix
+data_newX<-as(data_new,'transactions')
+```
+
+```{r}
+# Item frequency plot
+# This tells us how many times an item has occurred in our data set as compared to others.
+itemFrequencyPlot(data_newX,col=rainbow(5),topN=10,type='absolute')
+
+# This shows us that many customer's in the bank have opened both current and savings account.
+```
+# No RHS
+```{r}
+# Generating rules without defining RHS
+# We set the confidence as 90% and support as 0.1.
+rules_no_rhs<-apriori(data_newX,parameter = list(support=0.1,confidence=0.90))
+rules_no_rhs
+```
+
+```{r}
+# Inspecting the rules
+# Using Confidence
+inspect(sort(rules_no_rhs[1:20],by='confidence',ascending=FALSE))
+
+# Using lift
+inspect(sort(rules_no_rhs[1:20],by='lift'))
+
+# Based on confidence and lift I have 20-30 strong rules below with my confidence ranging from 90-100% and lift ranging from 1.3 to 2.1.
+# For our 1st rule: Customer's in their 20's ,having no mortgage and having current account tend to belong to minimum income category.
+```
+
+```{r}
+# As per confidence - No RHS
+# Network graph shows that we have high support and lift for certain categories.
+plot(sort(rules_no_rhs[1:20],by='confidence'),method='graph')
+```
+# Setting pep='YES'
+# Defining RHS
+```{r}
+# Using apriori() to generate rules for pep='YES'
+rules<-apriori(data_newX,parameter = list(support=0.03,confidence=0.9),appearance = list(rhs='pep=YES',default='lhs'))
+rules
+```
+```{r}
+# Inspecting rules based on confidence and lift
+
+# Using Confidence
+inspect(sort(rules[1:20],by='confidence',ascending=FALSE))
+
+# Using lift
+inspect(sort(rules[1:20],by='lift'))
+
+# Confidence-(A->B):It is the likelihood that if an item B i.e. 'PEP' is also purchased if A is purchased.
+# Confidence (A->B)-It is the likelihood that if an item B is also purchased if A is purchased.
+# Lift-It is the likelihood that tells us how strong is the association between two products.
+
+# Rules-People who would buy PEP: Rule with high lift and confidence.
+
+# As observed from the rules below:
+
+# R-1 Customer’s in their forties, having one kid, and no mortgage. Support=0.036, confidence=1 and lift =2.18.
+# R-2 Customer’s that are categorized as ‘Rich’ as per Income category, no mortgage and one kid. Support =0.035 , confidence=0.95 and lift=2.09
+# R-3 Customer’s in their sixties and have one kid. Support=0.033, confidence=0.95 and lift=2.08
+# R-4 Male customer’s categorized as ‘Rich’ and having 2 kids. Support=0.04, confidence=0.92 and lift=2.01
+# R-5 Customer’s in their sixties, categorized as rich and have two kids. Support=0.033, confidence=0.90 and lift=1.99
+
+# My Suggestions:
+
+# The above rules have a confidence ranging from 90 to 100% that means a customer would by PEP if he/she is matching the above criteria.
+# With lift ranging from 2.08 to 2.18 this means that there is a 2% increase in purchase of PEP if the above criteria is met.
+# We have a count section in the algorithm that depicts the no. of times a particular instance has occurred.
+# As per the above rules it seems that our majority of customers are in their forties and sixties, have no mortgage, have 1-2 kids and are rich.
+```
+
+```{r}
+# As per confidence
+# Scatter plots shows that we have some rules that have confidence as 1 and lift greater than 2.15.
+plot(sort(rules[1:20],by='confidence'),method='scatterplot',jitter=0)
+```
+
+```{r}
+# Network Graph for PEP='YES'
+# In this graph each node represents the factors that would result in customer's buying PEP.
+# The bigger the size of the node, it means that it has high support and darker color means it is having high lift.
+
+plot(sort(rules[1:20],by='confidence'),method='graph')
+```
+
